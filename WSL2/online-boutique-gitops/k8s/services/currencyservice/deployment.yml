@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservice
+  namespace: dev-environment
+  labels:
+    app: currencyservice
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: currencyservice
+  template:
+    metadata:
+      labels:
+        app: currencyservice
+    spec:
+      containers:
+      - name: currencyservice
+        image: gcr.io/google-samples/microservices-demo/currencyservice:v0.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 7000
+        readinessProbe:
+          grpc:
+            port: 7000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          grpc:
+            port: 7000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: PORT
+          value: "7000"

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productcatalogservice
+  namespace: dev-environment
+  labels:
+    app: productcatalogservice
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: productcatalogservice
+  template:
+    metadata:
+      labels:
+        app: productcatalogservice
+    spec:
+      containers:
+      - name: productcatalogservice
+        image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3550
+        readinessProbe:
+          httpGet:
+            path: /_healthz
+            port: 3550
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /_healthz
+            port: 3550
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: PORT
+          value: "3550"

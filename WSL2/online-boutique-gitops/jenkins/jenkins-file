@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = 'your-dockerhub-username/frontend'
+    }
+
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        timestamps()
+    }
+
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout from Git') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Trivy File Scan') {
+            steps {
+                dir('src/frontend') {
+                    sh 'trivy fs . > trivyfs.txt'
+                }
+            }
+        }
+
+        stage('Docker Image Build') {
+            steps {
+                script {
+                    dir('src/frontend') {
+                        sh 'docker system prune -f'
+                        sh 'docker container prune -f'
+                        sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .'
+                    }
+                }
+            }
+        }
+
+        stage('Push Image to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('TRIVY Image Scan') {
+            steps {
+                sh 'trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER} > trivyimage.txt'
+            }
+        }
+
+        stage('Update Deployment file') {
+            steps {
+                dir('k8s/services/frontend') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        sh '''
+                            git config user.email "codex@openai.com"
+                            git config user.name "OpenAI Codex"
+                            sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${BUILD_NUMBER}|" deployment.yml
+                            git add deployment.yml
+                            git commit -m "Update frontend image to version ${BUILD_NUMBER}" || true
+
+                            remote_url=$(git remote get-url origin)
+                            case "$remote_url" in
+                                https://*)
+                                    auth_url="https://${GITHUB_TOKEN}@${remote_url#https://}"
+                                    ;;
+                                git@github.com:*)
+                                    auth_url="https://${GITHUB_TOKEN}@github.com/${remote_url#git@github.com:}"
+                                    ;;
+                                *)
+                                    echo "Unsupported remote URL: $remote_url"
+                                    exit 1
+                                    ;;
+                            esac
+
+                            git push "$auth_url" HEAD
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Sending notifications...'
+        }
+    }
+}

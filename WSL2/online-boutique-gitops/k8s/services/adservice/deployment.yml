@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adservice
+  namespace: dev-environment
+  labels:
+    app: adservice
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: adservice
+  template:
+    metadata:
+      labels:
+        app: adservice
+    spec:
+      containers:
+      - name: adservice
+        image: gcr.io/google-samples/microservices-demo/adservice:v0.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9555
+        readinessProbe:
+          grpc:
+            port: 9555
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          grpc:
+            port: 9555
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: PORT
+          value: "9555"

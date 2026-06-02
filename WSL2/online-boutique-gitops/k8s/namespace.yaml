@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev-environment
+  labels:
+    environment: development
+    team: devops-engineering
+  annotations:
+    description: "Main development workspace for containerized microservices"
+    owner: "random@company.com"

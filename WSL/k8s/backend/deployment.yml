@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: three-tier
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      imagePullSecrets:
+        - name: docker-registry-secret
+      containers:
+        - name: backend
+          imagePullPolicy: Always
+          image: your-backend-image:latest # change to your backend image
+          env:
+            - name: MONGO_CONN_STR
+              value: mongodb://mongodb-svc:27017/todo?directConnection=true
+          ports:
+            - containerPort: 3500
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: 3500
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ok
+              port: 3500
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+            requests:
+              memory: "128Mi"
+              cpu: "250m"

@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: online-boutique
+  namespace: argocd
+spec:
+  description: Argo CD project for the Online Boutique application.
+  sourceRepos:
+  - '*'
+  destinations:
+  - namespace: dev-environment
+    server: https://kubernetes.default.svc

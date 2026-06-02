@@ -1,0 +1,36 @@
+- rule: Shell Spawned In Container
+  desc: Alert when an interactive shell is started inside a container.
+  condition: container and spawned_process and proc.name in (bash, sh)
+  output: >
+    Shell spawned in container
+    (user=%user.name container=%container.id container_name=%container.name
+    pod=%k8s.pod.name namespace=%k8s.ns.name proc=%proc.name cmdline=%proc.cmdline)
+  priority: WARNING
+  tags: [container, process, mitre_execution]
+
+- rule: Sensitive File Read In Container
+  desc: Alert when a container reads /etc/passwd or /etc/shadow.
+  condition: >
+    container and open_read and fd.name in (/etc/passwd, /etc/shadow)
+  output: >
+    Sensitive file read in container
+    (user=%user.name container=%container.id container_name=%container.name
+    pod=%k8s.pod.name namespace=%k8s.ns.name file=%fd.name proc=%proc.name cmdline=%proc.cmdline)
+  priority: WARNING
+  tags: [container, filesystem, mitre_credential_access]
+
+- rule: Unexpected Outbound Connection From Container
+  desc: Alert when a container initiates an outbound network connection.
+  condition: >
+    container and evt.type in (connect, connectat) and fd.typechar=4 and
+    not proc.name in
+    (frontend, cartservice, productcatalogservice, currencyservice, paymentservice,
+    shippingservice, emailservice, checkoutservice, recommendationservice, adservice,
+    redis-server) and
+    fd.sip != 127.0.0.1 and fd.sip != ::1
+  output: >
+    Unexpected outbound connection from container
+    (user=%user.name container=%container.id container_name=%container.name
+    pod=%k8s.pod.name namespace=%k8s.ns.name proc=%proc.name connection=%fd.name)
+  priority: NOTICE
+  tags: [container, network, mitre_command_and_control]

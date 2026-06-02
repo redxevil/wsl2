@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique
+  namespace: argocd
+spec:
+  project: online-boutique
+  source:
+    repoURL: 'https://github.com/your-username/online-boutique-gitops.git'
+    targetRevision: HEAD
+    path: k8s
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev-environment
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
