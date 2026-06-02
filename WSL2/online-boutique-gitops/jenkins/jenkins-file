@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'your-dockerhub-username/frontend'
+        DOCKER_IMAGE = 'redxevil/frontend'
     }
 
     options {
@@ -67,8 +67,8 @@ pipeline {
                 dir('k8s/services/frontend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "codex@openai.com"
-                            git config user.name "OpenAI Codex"
+                            git config user.email "hs745419@gmail.com"
+                            git config user.name "RedXevil"
                             sed -i "s|image: .*|image: ${DOCKER_IMAGE}:${BUILD_NUMBER}|" deployment.yml
                             git add deployment.yml
                             git commit -m "Update frontend image to version ${BUILD_NUMBER}" || true
